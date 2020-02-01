@@ -8,9 +8,9 @@ class BertContextAugmentation():
     # TODO try catch
     def __init__(self, model_folder):
         self.folder = model_folder
-        self.config_path = folder + '/bert_config.json'
-        self.checkpoint_path = folder + '/bert_model.ckpt'
-        self.vocab_path = folder + '/vocab.txt'
+        self.config_path = self.folder + '/bert_config.json'
+        self.checkpoint_path = self.folder + '/bert_model.ckpt'
+        self.vocab_path = self.folder + '/vocab.txt'
         self.tokenizer = tokenization.FullTokenizer(vocab_file=self.vocab_path, do_lower_case=False)
         self.model = load_trained_model_from_checkpoint(self.config_path, self.checkpoint_path, training=True)
 
