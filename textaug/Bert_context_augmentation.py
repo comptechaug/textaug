@@ -8,13 +8,13 @@ class BertContextAugmentation():
     # TODO try catch
     def __init__(self, model_folder):
         self.folder = model_folder
-        self.config_path = self.folder + '/bert_config.json'
-        self.checkpoint_path = self.folder + '/bert_model.ckpt'
-        self.vocab_path = self.folder + '/vocab.txt'
+        self.config_path = folder + '/bert_config.json'
+        self.checkpoint_path = folder + '/bert_model.ckpt'
+        self.vocab_path = folder + '/vocab.txt'
         self.tokenizer = tokenization.FullTokenizer(vocab_file=self.vocab_path, do_lower_case=False)
         self.model = load_trained_model_from_checkpoint(self.config_path, self.checkpoint_path, training=True)
 
-    def bertAug(self, cls_sentence):
+    def bert_aug(self, cls_sentence):
         # предсказание слов, закрытых токеном MASK в фразе. На вход нейросети надо подать фразу в формате: [CLS] Я пришел в [MASK] и купил [MASK]. [SEP]
 
         # входная фраза с закрытыми словами с помощью [MASK]
@@ -79,7 +79,10 @@ class BertContextAugmentation():
 
         return out_sentence
 
-    def insert_word_in_random_place(self, sentence, sent_length):
+    def choose_random_place(self, sentence, sent_length):
+        """
+        Выбирает рандомные места в предложении куда в дальнейшем вставляет слово
+        """
         aug_num = np.random.randint(1, sent_length // 3 + 1)
         splited_sent = sentence.split(' ')
         for i in range(aug_num):
@@ -87,7 +90,10 @@ class BertContextAugmentation():
             splited_sent.insert(np.random.randint(1, sent_length), '[MASK]')
         return ' '.join(splited_sent)
 
-    def random_word_replacement(self, sentence, sent_length):
+    def choose_random_word(self, sentence, sent_length):
+        """
+        Выберает рандомное слово которое будет заменено
+        """
         aug_num = np.random.randint(1, sent_length // 3 + 1)
         splited_sent = sentence.split(' ')
         for i in range(aug_num):
@@ -97,11 +103,32 @@ class BertContextAugmentation():
                     splited_sent[n] = '[MASK]'
         return ' '.join(splited_sent)
 
-    def make_augmentation(self, sentence):
-        """Применяет одну из двух аугментаций к предложению"""
+    def make_single_aug(self, sentence, sent_length):
+        """
+        Применяет одну из двух аугментаций к предложению
+        """
+        if np.random.randint(0, 2) == 0:
+            aug_sentence = self.bert_aug(self.choose_random_place(sentence, sent_length))
+        else:
+            aug_sentence = self.bert_aug(self.choose_random_word(sentence, sent_length))
+        return aug_sentence
+
+    def try_another_one_aug(self, sentence, sent_length, attempts=1, trys=3):
+        """
+        Пытается применить аугментацию пока не получит новое предложение.
+        """
+        if attempts <= trys:
+            aug_sentence = self.make_single_aug(sentence, sent_length)
+            if aug_sentence == sentence:
+                self.try_another_one_aug(sentence, sent_length, attempts=attempts + 1, trys=trys)
+            else:
+                return aug_sentence
+        return sentence
+
+    def make_augmentation(self, sentence, attempts=1, trys=3):
         sent_length = len(sentence.split(' '))
         if sent_length // 3 > 0:
-            if np.random.randint(0, 2) == 0:
-                return self.bertAug(self.insert_word_in_random_place(sentence, sent_length))
-            else:
-                return self.bertAug(self.random_word_replacement(sentence, sent_length))
+            aug_sentence = self.try_another_one_aug(sentence, sent_length, attempts=attempts, trys=trys)
+            return aug_sentence
+        return sentence
+
