@@ -28,7 +28,7 @@ def benchmark_pipeline(datafile):
         "Log regression" : Classifiers.log_reg,
         # "Random forest" : Classifiers.random_forest,
         # "SVC" : Classifiers.svc,
-        "PCA & Log reg" : Classifiers.pca_log_reg,
+        # "PCA & Log reg" : Classifiers.pca_log_reg,
     }
     results = dict()
 
