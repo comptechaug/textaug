@@ -4,10 +4,11 @@ from assistants.classifiers import Classifiers, Metrics
 import os.path
 
 
-def benchmark_pipeline(datafile):
+def benchmark_pipeline(datafolder, trainfile, testfile):
 
+    datafile = datafolder + trainfile
     print('Reading...', datafile)
-    data = DataPreparation.read_data(datafile)
+    data = DataPreparation.read_data(datafolder + trainfile, datafolder+testfile)
     
     print('Preparation to embedding')
     embed = Embeddings()
@@ -29,15 +30,17 @@ def benchmark_pipeline(datafile):
         # "Random forest" : Classifiers.random_forest,
         # "SVC" : Classifiers.svc,
         # "PCA & Log reg" : Classifiers.pca_log_reg,
+        "Naive Bayes" : Classifiers.naive_bayes,
+        "K Neighbors" : Classifiers.k_neighbors,
+        "Neural network" : Classifiers.perceptron,
     }
     results = dict()
 
     print('Classification time...')
     for kind in data_encoded:
         for clf in dict_classifiers:
-            
-            score = dict_classifiers[clf](*data_encoded[kind])
             try:
+                score = dict_classifiers[clf](*data_encoded[kind])
                 print('+++', datafile, 'Accuracy score |', clf, '|', kind, '|', score)
             except:
                 print('ERROR.', datafile, 'Accuracy score |', clf, '|', kind)
@@ -55,12 +58,15 @@ if __name__=="__main__":
         raise DictionaryError
     
     data_list = [
-        '../../data/twitts',
-        '../../data/SentEvalRu/Poems classifier', 
-        '../../data/SentEvalRu/Proza classifier', 
-        '../../data/SentEvalRu/Readability classifier',
-        '../../data/SentEvalRu/Tags classifier'
+        '../../data/twitts/',
+        '../../data/SentEvalRu/Poems classifier/', 
+        '../../data/SentEvalRu/Proza classifier/', 
+        '../../data/SentEvalRu/Readability classifier/',
+        '../../data/SentEvalRu/Tags classifier/'
         ]
+
+    testfile = 'test.csv'
+    trainfile = 'train.csv'
              
     for datafile in data_list:
-        benchmark_pipeline(datafie)
+        benchmark_pipeline(datafie, trainfile, testfile )

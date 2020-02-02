@@ -1,10 +1,14 @@
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_curve, confusion_matrix, accuracy_score, f1_score
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neural_network import MLPClassifier
 from sklearn.decomposition import PCA
 from sklearn.svm import SVC
 import numpy, seaborn, pandas
 from matplotlib import pyplot
+from scipy.sparse import vstack
 
 class Metrics:
     
@@ -14,7 +18,7 @@ class Metrics:
         means = numpy.array([numpy.mean( answers[ numpy.random.randint(len(answers), size=samples_num) ] ) for _ in range(num)])
         result = (f'Accuracy mean: {means.mean():.3f} +/- {means.std()*2:.3f} (95% conf.)')
         return result
-        
+
     def confusion_matrix( y_pred, y_test, labels=True ):
         conf_mat = confusion_matrix(y_test, y_pred)
         seaborn.set(rc={'figure.figsize':(9,9)}, font_scale=2)
@@ -30,7 +34,7 @@ class Classifiers:
         clf_aug = LogisticRegression(max_iter=400, verbose=1, n_jobs=-1)
         clf_aug.fit(X_train, y_train)
         y_pred = clf_aug.predict(X_test)
-        # print( 'Log reg.', Metrics.bootstrap_toy(y_pred, y_test, 100) )
+        print(confusion_matrix(y_pred, y_test))
         return accuracy_score(y_test, y_pred)
         
     def random_forest(X_train, X_test, y_train, y_test):
@@ -56,15 +60,30 @@ class Classifiers:
         if isinstance(X_train, pandas.core.frame.DataFrame):
             X = numpy.vstack((X_train.values, X_test.values))
         else:
-            X = numpy.vstack((X_train.toarray(), X_test.toarray()))
+            X = numpy.vstack([X_train, X_test])
         pca = PCA(n_components=min(X.shape[0], 200))
         X = pca.fit_transform(X)
         return Classifiers.log_reg(X[:split_index,], X[split_index:,], y_train, y_test)
     
-    
     #Naive Bayes
-    #MLPClassifier
+    def naive_bayes(X_train, X_test, y_train, y_test):
+        clf_aug = MultinomialNB()
+        clf_aug.fit(X_train, y_train)
+        y_pred = clf_aug.predict(X_test)
+        return accuracy_score(y_test, y_pred)
+
     #KNeighborsClassifier
-        
-        
+    def k_neighbors(X_train, X_test, y_train, y_test):
+        clf_aug = KNeighborsClassifier(n_jobs=-1)
+        clf_aug.fit(X_train, y_train)
+        y_pred = clf_aug.predict(X_test)
+        return accuracy_score(y_test, y_pred)
+
+    #MLPClassifier
+    def perceptron(X_train, X_test, y_train, y_test):
+        clf_aug = MLPClassifier( hidden_layer_sizes=(30,), verbose=1, early_stopping=True, n_iter_no_change=2 )
+        clf_aug.fit(X_train, y_train)
+        y_pred = clf_aug.predict(X_test)
+        print(confusion_matrix(y_pred, y_test))
+        return accuracy_score(y_test, y_pred) 
     
