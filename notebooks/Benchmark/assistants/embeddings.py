@@ -35,7 +35,8 @@ class Embeddings:
     def fasttext_vectorizer(self, fasttext_path='cc.ru.300.bin'):
         if self.model_ft is None:
             self.model_ft = fasttext.load_model(fasttext_path)
-        X_ft = self.X.str.findall(r'[а-яА-ЯёЁ]+')
+        X_ft = self.X.str.lower()
+        X_ft = X_ft.str.findall(r'[а-яА-ЯёЁ]+')
         X_ft = DataFrame( X_ft.apply(lambda x: self.fasttext_vectorize_words_list(self.model_ft, x) ).tolist() )
         if( X_ft.iloc[:self.split_index, ].shape[0]!=len(self.y_train)):
             raise LenException
