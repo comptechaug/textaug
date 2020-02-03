@@ -4,15 +4,19 @@ import re
 import tokenization
 
 
-class BertContextAugmentation():
+class BertContextAugmentation:
     # TODO try catch
     def __init__(self, model_folder):
         self.folder = model_folder
-        self.config_path = self.folder + '/bert_config.json'
-        self.checkpoint_path = self.folder + '/bert_model.ckpt'
-        self.vocab_path = self.folder + '/vocab.txt'
-        self.tokenizer = tokenization.FullTokenizer(vocab_file=self.vocab_path, do_lower_case=False)
-        self.model = load_trained_model_from_checkpoint(self.config_path, self.checkpoint_path, training=True)
+        self.config_path = self.folder + "/bert_config.json"
+        self.checkpoint_path = self.folder + "/bert_model.ckpt"
+        self.vocab_path = self.folder + "/vocab.txt"
+        self.tokenizer = tokenization.FullTokenizer(
+            vocab_file=self.vocab_path, do_lower_case=False
+        )
+        self.model = load_trained_model_from_checkpoint(
+            self.config_path, self.checkpoint_path, training=True
+        )
 
     def bert_aug(self, cls_sentence):
         # предсказание слов, закрытых токеном MASK в фразе. На вход нейросети надо подать фразу в формате: [CLS] Я пришел в [MASK] и купил [MASK]. [SEP]
@@ -23,19 +27,20 @@ class BertContextAugmentation():
         sentence = cls_sentence
 
         # преобразование в токены (tokenizer.tokenize() не обрабатывает [CLS], [MASK], поэтому добавим их вручную)
-        sentence = sentence.replace(' [MASK] ', '[MASK]');
-        sentence = sentence.replace('[MASK] ', '[MASK]');
-        sentence = sentence.replace(' [MASK]',
-                                    '[MASK]')  # удаляем лишние пробелы. Можно заменить регуляркой "\s?\[MASK\]\s?", но это надо импортить re
-        sentence = sentence.split('[MASK]')  # разбиваем строку по маске
-        tokens = ['[CLS]']  # фраза всегда должна начинаться на [CLS]
+        sentence = sentence.replace(" [MASK] ", "[MASK]")
+        sentence = sentence.replace("[MASK] ", "[MASK]")
+        sentence = sentence.replace(
+            " [MASK]", "[MASK]"
+        )  # удаляем лишние пробелы. Можно заменить регуляркой "\s?\[MASK\]\s?", но это надо импортить re
+        sentence = sentence.split("[MASK]")  # разбиваем строку по маске
+        tokens = ["[CLS]"]  # фраза всегда должна начинаться на [CLS]
         # обычные строки преобразуем в токены с помощью tokenizer.tokenize(), вставляя между ними [MASK]
         for i in range(len(sentence)):
             if i == 0:
                 tokens = tokens + self.tokenizer.tokenize(sentence[i])
             else:
-                tokens = tokens + ['[MASK]'] + self.tokenizer.tokenize(sentence[i])
-        tokens = tokens + ['[SEP]']  # фраза всегда должна заканчиваться на [SEP]
+                tokens = tokens + ["[MASK]"] + self.tokenizer.tokenize(sentence[i])
+        tokens = tokens + ["[SEP]"]  # фраза всегда должна заканчиваться на [SEP]
         # в tokens теперь токены, которые гарантированно по словарю преобразуются в индексы
 
         # преобразуем в массив индексов, который можно подавать на вход сети, причем число 103 в нем это [MASK]
@@ -60,75 +65,130 @@ class BertContextAugmentation():
 
         # пропускаем через нейросеть...
         predicts = self.model.predict([token_input, seg_input, mask_input])[
-            0]  # в [0] полная фраза с заполненными предсказанными словами на месте [MASK]
+            0
+        ]  # в [0] полная фраза с заполненными предсказанными словами на месте [MASK]
         predicts = np.argmax(predicts, axis=-1)
 
         # форматируем результат в строку, разделенную пробелами
         predicts = predicts[0][
-                   :len(tokens)]  # длиной как исходная фраза (чтобы отсечь случайные выбросы среди нулей дальше)
+            : len(tokens)
+        ]  # длиной как исходная фраза (чтобы отсечь случайные выбросы среди нулей дальше)
         out = []
         # добавляем в out только слова в позиции [MASK], которые маскированы цифрой 1 в mask_input
         for i in range(len(mask_input[0])):
             if mask_input[0][i] == 1:  # [0][i], т.к. требование было (1,512)
                 out.append(predicts[i])
-
         out = self.tokenizer.convert_ids_to_tokens(out)  # индексы в токены
 
-        for i in range(len(re.findall('\[MASK\]?', out_sentence))):
-            out_sentence = re.sub('\[MASK\]', out[i], out_sentence, 1)
-
+        for i in range(len(re.findall("\[MASK\]?", out_sentence))):
+            out_sentence = re.sub("\[MASK\]", out[i], out_sentence, 1)
         return out_sentence
 
-    def choose_random_place(self, sentence, sent_length):
+    def choose_random_place(self, splited_sentence, sent_length):
         """
         Выбирает рандомные места в предложении куда в дальнейшем вставляет слово
         """
         aug_num = np.random.randint(1, sent_length // 3 + 1)
-        splited_sent = sentence.split(' ')
         for i in range(aug_num):
-            splited_sent = splited_sent[:];
-            splited_sent.insert(np.random.randint(1, sent_length), '[MASK]')
-        return ' '.join(splited_sent)
+            splited_sentence = splited_sentence[:]
+            splited_sentence.insert(np.random.randint(1, sent_length), "[MASK]")
+        return " ".join(splited_sentence)
 
-    def choose_random_word(self, sentence, sent_length):
+    def choose_random_word(self, splited_sentence, sent_length):
         """
         Выберает рандомное слово которое будет заменено
         """
         aug_num = np.random.randint(1, sent_length // 3 + 1)
-        splited_sent = sentence.split(' ')
         for i in range(aug_num):
             rand_ind = np.random.randint(0, sent_length)
-            for n, i in enumerate(splited_sent):
+            for n, i in enumerate(splited_sentence):
                 if n == rand_ind:
-                    splited_sent[n] = '[MASK]'
-        return ' '.join(splited_sent)
+                    splited_sentence[n] = "[MASK]"
+        return " ".join(splited_sentence)
 
-    def make_single_aug(self, sentence, sent_length):
+    def split_for_aug(self, sent_length, n):
+        if sent_length <= n:
+            return False
+        return True
+
+    def split_sentence(self, splited_sentence, n):
+        """
+        Yield successive n-sized chunks from lst.
+        """
+        for i in range(0, len(splited_sentence), n):
+            yield splited_sentence[i : i + n]
+
+    def make_one_part_aug(self, splited_sentence, sent_length, attempts, trys):
+        if sent_length // 3 > 0:
+            aug_sentence = self.try_another_one_aug(
+                splited_sentence, sent_length, attempts=attempts, trys=trys
+            )
+            return aug_sentence
+        return " ".join(splited_sentence)
+
+    def make_single_aug(self, sentence, splited_sentence, sent_length):
         """
         Применяет одну из двух аугментаций к предложению
         """
         if np.random.randint(0, 2) == 0:
-            aug_sentence = self.bert_aug(self.choose_random_place(sentence, sent_length))
+            aug_sentence = self.bert_aug(
+                self.choose_random_place(splited_sentence, sent_length)
+            )
         else:
-            aug_sentence = self.bert_aug(self.choose_random_word(sentence, sent_length))
+            aug_sentence = self.bert_aug(
+                self.choose_random_word(splited_sentence, sent_length)
+            )
         return aug_sentence
 
-    def try_another_one_aug(self, sentence, sent_length, attempts=1, trys=3):
+    def try_another_one_aug(
+        self, sentence, splited_sentence, sent_length, attempts=1, trys=3
+    ):
         """
         Пытается применить аугментацию пока не получит новое предложение.
         """
         if attempts <= trys:
-            aug_sentence = self.make_single_aug(sentence, sent_length)
+            aug_sentence = self.make_single_aug(sentence, splited_sentence, sent_length)
             if aug_sentence == sentence:
-                self.try_another_one_aug(sentence, sent_length, attempts=attempts + 1, trys=trys)
+                self.try_another_one_aug(
+                    sentence,
+                    splited_sentence,
+                    sent_length,
+                    attempts=attempts + 1,
+                    trys=trys,
+                )
             else:
                 return aug_sentence
         return sentence
 
     def make_augmentation(self, sentence, attempts=1, trys=3):
-        sent_length = len(sentence.split(' '))
+        splited_sentence = re.findall(r"[\w']+|[^\w\s]", sentence)
+        sent_length = len(splited_sentence)
+        if self.split_for_aug(sent_length, 200):
+            aug_sentence = ""
+            for splited_sentence_part in self.split_sentence(splited_sentence, 200):
+                aug_sentence += self.make_one_part_aug(
+                    " ".join(splited_sentence_part),
+                    splited_sentence_part,
+                    len(splited_sentence_part),
+                    attempts,
+                    trys,
+                )
+            return aug_sentence
+        aug_sentence = self.make_one_part_aug(
+            sentence, splited_sentence, sent_length, attempts, trys
+        )
+        return aug_sentence
+
+    def make_one_part_aug(
+        self, sentence, splited_sentence, sent_length, attempts, trys
+    ):
         if sent_length // 3 > 0:
-            aug_sentence = self.try_another_one_aug(sentence, sent_length, attempts=attempts, trys=trys)
+            aug_sentence = self.try_another_one_aug(
+                sentence, splited_sentence, sent_length, attempts=attempts, trys=trys
+            )
             return aug_sentence
         return sentence
 
+a = BertContextAugmentation("L:/ForSchool/rubert_cased_L-12_H-768_A-12_v2")
+print(a.make_augmentation('У попа была собака, он ее любил'))
+print(a.make_augmentation('У попа была собака, он ее любил'))
