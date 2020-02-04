@@ -1,0 +1,14 @@
+nltk==3.4.5
+pymystem3==0.2.0
+pymorphy2==0.8
+tensorflow==1.15.0
+tensorflow-gpu
+numpy==1.18.1
+keras-bert==0.81.0
+yandex.translate==0.3.5
+gensim==3.8.1
+annoy==1.16.3
+six==1.14.0
+pandas==1.0.0
+keras==2.3.1
+tokenization==1.0.7
