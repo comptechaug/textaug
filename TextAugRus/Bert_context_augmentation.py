@@ -1,17 +1,17 @@
 import numpy as np
 from keras_bert import load_trained_model_from_checkpoint
 import re
-import tokenization
+from .tokenization import FullTokenizer
 
 
 class BertContextAugmentation:
     # TODO try catch
-    def __init__(self, model_folder):
+        def __init__(self, model_folder):
         self.folder = model_folder
         self.config_path = self.folder + "/bert_config.json"
         self.checkpoint_path = self.folder + "/bert_model.ckpt"
         self.vocab_path = self.folder + "/vocab.txt"
-        self.tokenizer = tokenization.FullTokenizer(
+        self.tokenizer = FullTokenizer(
             vocab_file=self.vocab_path, do_lower_case=False
         )
         self.model = load_trained_model_from_checkpoint(
@@ -188,7 +188,3 @@ class BertContextAugmentation:
             )
             return aug_sentence
         return sentence
-
-a = BertContextAugmentation("L:/ForSchool/rubert_cased_L-12_H-768_A-12_v2")
-print(a.make_augmentation('У попа была собака, он ее любил'))
-print(a.make_augmentation('У попа была собака, он ее любил'))

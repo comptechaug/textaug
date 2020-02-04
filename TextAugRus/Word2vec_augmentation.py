@@ -6,7 +6,7 @@ import random
 
 class Word2VecAugmentation(object):
     def __init__(
-        self, path_to_dictionary="mipt_vecs.w2v", indexer=None, cache_dict=False
+        self, path_to_dictionary="mipt_vecs.w2v", indexer=None, cache_dict=False, partition=0.5
     ):
         # если нет словаря, то скачать его
         self.model = gensim.models.KeyedVectors.load_word2vec_format(
@@ -16,6 +16,7 @@ class Word2VecAugmentation(object):
             AnnoyIndexer(self.model, num_trees=10) if (indexer == "annoy") else None
         )
         self.replace_dict = dict() if cache_dict else None
+        self.partition = partition
 
     def clear_replace_dict(self):
         if self.replace_dict is not None:
@@ -32,13 +33,13 @@ class Word2VecAugmentation(object):
                 )[word_index][0]
         return replace_dict
 
-    def make_augmentation(self, text, partition=0.5):
+    def make_augmentation(self, text):
         words_set = set(re.findall(r"[а-яА-Яa-zA-Z]+", text))
         replace_dict = self.get_similar_words_dict(words_set)
         return re.sub(
             r"[а-яА-Яa-zA-Z]+",
             lambda x: replace_dict[x.group()]
-            if (random.random() < partition) and (x.group() in replace_dict)
+            if (random.random() < self.partition) and (x.group() in replace_dict)
             else x.group(),
             text,
         )

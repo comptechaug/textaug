@@ -19,7 +19,3 @@ class Translate:
                 )["text"]
                 for i in range(0, len(text), batch_size)
             ]
-
-
-a = Translate('trnsl.1.1.20200202T133547Z.e22ac9428cdeee5a.0f1f5e4eef0297f010a9b19bc8e57dc94dfa7c3f')
-print(a.make_augmentation('стою на асфальте я в лыжи обутый'))
