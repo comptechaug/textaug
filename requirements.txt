@@ -3,7 +3,7 @@ pymystem3==0.2.0
 pymorphy2==0.8
 tensorflow==1.15.0
 tensorflow-gpu
-numpy==1.18.1
+numpy==1.22.0
 keras-bert==0.81.0
 yandex.translate==0.3.5
 gensim==3.8.1
